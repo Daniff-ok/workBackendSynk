@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"os"
 
 	"github.com/bregydoc/gtranslate"
+	"github.com/joho/godotenv"
 )
 
-const apikey = ""
+var apikey string
 
 type TRrequest struct {
 	Token      string  `json:"token"`
@@ -35,6 +37,8 @@ type TranslateReturn struct {
 }
 
 func main() {
+	loadEnv()
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/translate", returnTranslateHandler)
@@ -100,4 +104,13 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func loadEnv() {
+	err := godotenv.Load()
+    if err != nil {
+        fmt.Println("Ошибка загрузки .env файла")
+    }
+
+	apikey = os.Getenv("STEAM_INVENTORY_API")
 }
