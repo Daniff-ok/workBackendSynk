@@ -42,6 +42,7 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var requestData TRrequest
 	fmt.Println("Get request")
+	fmt.Println(requestData)
 
 	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
@@ -61,12 +62,13 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 			},
 		)
 
-		trReturn.Results = append(trReturn.Results, translateText{translated, "zh"})
+		trReturn.Results = append(trReturn.Results, TranslateText{translated, "zh"})
 
 		if err != nil {
 			fmt.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("translate error"))
+
 		}
 	}
 
@@ -75,6 +77,7 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
+	fmt.Println(trReturn)
 	err = json.NewEncoder(w).Encode(trReturn)
 	if err != nil {
 		fmt.Println(err)

@@ -40,19 +40,19 @@ type TRrequest struct {
 	HwidStable string  `json:"hwidStable"`
 	TargetLang string  `json:"targetLang"`
 	Game       int     `json:"game"`
-	Items      []items `json:"items"`
+	Items      []Items `json:"items"`
 }
 
-type items struct {
+type Items struct {
 	Text           string `json:"text"`
 	SourceLanguage string `json:"sourceLang"`
 }
 
-type translateText struct {
+type TranslateText struct {
 	Text   string `json:"text"`
 	Source string `json:"scr"`
 }
 
 type TranslateReturn struct {
-	Results []translateText `json:"results"`
+	Results []TranslateText `json:"results"`
 }
