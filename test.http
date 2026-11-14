@@ -1,0 +1,11 @@
+POST http://localhost:6767/api/translate HTTP/1.1
+content-type: application/json
+
+{
+    "token": "123-456-789",
+    "hwid": "fdgdfgfds65fgdsf6dg5s5dfgs67856dg78fs",
+    "hwidStable": "fdgdfgfds65fgdsf6dg5s5dfgs67856dg78fsSTABLE",
+    "targetLang": "zh",
+    "game": 1,
+    "items": [{"text": "看不懂", "sourceLang": "zh"}, {"text": "看不懂", "sourceLang": "zh"}, {"text": "看不懂", "sourceLang": "zh"}]
+}
