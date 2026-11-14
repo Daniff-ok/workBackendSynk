@@ -42,7 +42,6 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var requestData TRrequest
 	fmt.Println("Get request")
-	fmt.Println(requestData)
 
 	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
@@ -51,6 +50,7 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Json error"))
 	}
 
+	fmt.Println(requestData)
 	var trReturn TranslateReturn
 
 	for _, val := range requestData.Items {
