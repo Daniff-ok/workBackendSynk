@@ -41,13 +41,13 @@ func dumpHandler(w http.ResponseWriter, r *http.Request) {
 func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var requestData TRrequest
+	fmt.Println("Get request")
 
 	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Json error"))
-		return
 	}
 
 	var trReturn TranslateReturn
