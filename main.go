@@ -11,31 +11,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var apikey string
-
-type TRrequest struct {
-	Token      string  `json:"token"`
-	Hwid       string  `json:"hwid"`
-	HwidStable string  `json:"hwidStable"`
-	TargetLang string  `json:"targetLang"`
-	Game       int     `json:"game"`
-	Items      []Items `json:"items"`
-}
-
-type Items struct {
-	Text           string `json:"text"`
-	SourceLanguage string `json:"sourceLang"`
-}
-
-type translateText struct {
-	Text   string `json:"text"`
-	Source string `json:"scr"`
-}
-
-type TranslateReturn struct {
-	Results []translateText `json:"results"`
-}
-
 func main() {
 	loadEnv()
 
@@ -44,7 +19,7 @@ func main() {
 	mux.HandleFunc("/api/translate", returnTranslateHandler)
 	mux.HandleFunc("/", dumpHandler)
 
-	err := http.ListenAndServe(":6767", mux)
+	err := http.ListenAndServe(":3000", mux)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -112,5 +87,5 @@ func loadEnv() {
         fmt.Println("Ошибка загрузки .env файла")
     }
 
-	apikey = os.Getenv("STEAM_INVENTORY_API")
+	Apikey = os.Getenv("STEAM_INVENTORY_API")
 }
