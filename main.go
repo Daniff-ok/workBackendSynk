@@ -86,7 +86,7 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 			},
 		)
 
-		trReturn.Results = append(trReturn.Results, translateText{translated, "user"})
+		trReturn.Results = append(trReturn.Results, translateText{translated, "zh"})
 
 		if err != nil {
 			fmt.Println(err)
