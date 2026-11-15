@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
-	"os"
 
 	"github.com/joho/godotenv"
 )
@@ -92,6 +91,4 @@ func loadEnv() {
 	if err != nil {
 		fmt.Println("Ошибка загрузки .env файла")
 	}
-
-	Apikey = os.Getenv("STEAM_INVENTORY_API")
 }

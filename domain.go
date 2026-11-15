@@ -1,6 +1,5 @@
 package main
 
-var Apikey string
 
 // INVENTORY VALUE
 type InventoryRequest struct {
