@@ -49,6 +49,7 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Json error"))
 		return
 	}
+	fmt.Println(requestData.Items)
 
 	defer r.Body.Close()
 
