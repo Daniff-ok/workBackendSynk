@@ -7,7 +7,6 @@ import (
 	"net/http/httputil"
 	"os"
 
-	"github.com/bregydoc/gtranslate"
 	"github.com/joho/godotenv"
 )
 
@@ -19,7 +18,7 @@ func main() {
 	mux.HandleFunc("/api/translate", returnTranslateHandler)
 	mux.HandleFunc("/", dumpHandler)
 
-	err := http.ListenAndServe(":3000", mux)
+	err := http.ListenAndServe(":6767", mux)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -46,38 +45,41 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
 		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Json error"))
+		return
 	}
 
-	fmt.Println(requestData)
-	var trReturn TranslateReturn
+	defer r.Body.Close()
 
+	text := []string{}
 	for _, val := range requestData.Items {
-		translated, err := gtranslate.TranslateWithParams(
-			val.Text,
-			gtranslate.TranslationParams{
-				From: "zh",
-				To:   "ru",
-			},
-		)
+		text = append(text, val.Text)
+	}
 
-		trReturn.Results = append(trReturn.Results, TranslateText{translated, "zh"})
+	if len(text) >= 10 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("гембит не роби"))
+		return
+	}
 
-		if err != nil {
-			fmt.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("translate error"))
+	trReturn := TranslateReturn{}
+	translate, err := Translate(text, "ru")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("deepseek error"))
+		return
+	}
 
-		}
+	for _, val := range translate {
+		trReturn.Results = append(trReturn.Results, TranslateText{val, "zh"})
 	}
 
 	fmt.Println(trReturn.Results)
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
 
-	fmt.Println(trReturn)
 	err = json.NewEncoder(w).Encode(trReturn)
 	if err != nil {
 		fmt.Println(err)
@@ -86,9 +88,9 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 
 func loadEnv() {
 	err := godotenv.Load()
-    if err != nil {
-        fmt.Println("Ошибка загрузки .env файла")
-    }
+	if err != nil {
+		fmt.Println("Ошибка загрузки .env файла")
+	}
 
 	Apikey = os.Getenv("STEAM_INVENTORY_API")
 }
