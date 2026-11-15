@@ -18,7 +18,7 @@ func main() {
 	mux.HandleFunc("/api/translate", returnTranslateHandler)
 	mux.HandleFunc("/", dumpHandler)
 
-	err := http.ListenAndServe(":6767", mux)
+	err := http.ListenAndServe(":3000", mux)
 	if err != nil {
 		fmt.Println(err)
 	}
