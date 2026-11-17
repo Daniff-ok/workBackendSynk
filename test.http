@@ -12,7 +12,7 @@ content-type: application/json
 
 ###
 
-POST http://localhost:6767/api/inventory HTTP/1.1
+POST http://localhost:3000/api/inventory HTTP/1.1
 content-type: application/json
 
 {
@@ -24,5 +24,5 @@ content-type: application/json
   "game": 570,
   "games": [570, 730, 252490, 440],
   "markets": {"570":"Steam","730":"Steam","252490":"Steam","440":"Steam"},
-  "roster": [{"steamId":"7656119...","team2":false},{"steamId":"7656117...","team2":false}, {"steamId":"7656112...","team2":true}]
+  "roster": [{"steamId":"76561198147927273","team2":false},{"steamId":"76561198063639479","team2":false}]
 }

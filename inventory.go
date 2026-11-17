@@ -145,6 +145,7 @@ func maptoAppResponce(wokResp wokResponse, steamResp steamResponce, reqData Inve
 		}
 	}
 
+	returnInventoryValue.GameValue = make(map[string]gameValue)
 	for i, player := range returnInventoryValue.Players {
 		for _, pairPlayerGame := range wokResp.Results {
 			if player.ID == pairPlayerGame.ID {
@@ -156,4 +157,35 @@ func maptoAppResponce(wokResp wokResponse, steamResp steamResponce, reqData Inve
 	}
 
 	return returnInventoryValue
+}
+
+func wokApiPlaceholder(_ butchWokRequest, _ *http.Client) (wokResponse, error) {
+	return wokResponse{
+		Results: []struct{
+			ID         string `json:"steamid"`
+			Game       string `json:"game"`
+			TotalValue float64 `json:"total"`
+		}{
+			{
+				ID: "76561198147927273",
+				Game: "dota2",
+				TotalValue: 595.31,
+			},
+			{
+				ID: "76561198147927273",
+				Game: "cs2",
+				TotalValue: 105,
+			},
+						{
+				ID: "76561198063639479",
+				Game: "dota2",
+				TotalValue: 780.99,
+			},
+						{
+				ID: "76561198063639479",
+				Game: "cs2",
+				TotalValue: 5.5,
+			},
+		},
+	}, nil
 }
