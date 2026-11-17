@@ -36,7 +36,7 @@ func returnInventoryValueHandler(w http.ResponseWriter, r *http.Request) {
 	for _, player := range inventoryRequestData.Players{
 		request.SteamIds = append(request.SteamIds, player.ID)
 	}
-	request.Games = []string{"dota2", "cs2", "rust"}
+	request.Games = []string{"dota2", "cs2"} // add rust
 
 	wokResp, err := requestInventory(request, client)
 	if err != nil {
@@ -60,7 +60,9 @@ func returnInventoryValueHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(mappedData)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("Json Encode error", "err", err)
+		http.Error(w, "Json Encode error", http.StatusInternalServerError)
+		return
 	}
 
 	slog.Debug("Succefull sent responce")
@@ -89,11 +91,14 @@ func requestInventory(requestBody butchWokRequest, cl *http.Client) (wokResponse
 	defer resp.Body.Close()
 
 	if resp.Status != "200 OK"{
-		return wokResponse{}, fmt.Errorf("Return error from inventory api, status %v", resp.Status)
+		return wokResponse{}, fmt.Errorf("Return error from inventory api, status %v, request body: %v", resp.Status, requestBody)
 	}
 
 	var dataResp wokResponse
 	err = json.NewDecoder(resp.Body).Decode(&dataResp)
+	if err != nil{
+		return wokResponse{}, fmt.Errorf("Json decode error: %w", err)
+	}
 
 	return dataResp, nil
 }
@@ -145,6 +150,7 @@ func maptoAppResponce(wokResp wokResponse, steamResp steamResponce, reqData Inve
 		}
 	}
 
+	slog.Debug("MAPPING", "returnInventoryValue.Players", returnInventoryValue.Players, "wokResp.Results", wokResp.Results)
 	for i, player := range returnInventoryValue.Players {
 		for _, pairPlayerGame := range wokResp.Results {
 			if player.ID == pairPlayerGame.ID {
