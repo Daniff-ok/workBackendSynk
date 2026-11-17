@@ -1,13 +1,14 @@
 package main
 
 
+
 // INVENTORY VALUE
 type InventoryRequest struct {
 	Token      string          `json:"token"`
 	Hwid       string          `json:"hwid"`
 	HwidStable string          `json:"hwidStable"`
 	Game       int             `json:"game"`
-	Players    []requestPlayer `json:"items"`
+	Players    []requestPlayer `json:"roster"`
 }
 
 type requestPlayer struct {
@@ -16,21 +17,54 @@ type requestPlayer struct {
 }
 
 type ReturnInventoryValue struct {
-	Ready   bool
-	Players []returnplayer
+	Ready     bool                 `json:"ready"`
+	Players   [9]returnPlayer      `json:"players"`
+	GameValue map[string]gameValue `json:"byGame"`
 }
 
-type returnplayer struct {
-	ID        string
-	Name      string
-	value     float64
-	Locked    float64
-	Blocked   float64
-	busy      bool
-	avatar    string
-	EnemyTeam bool
-	Party     int
+type returnPlayer struct {
+	ID        string  `json:"steamid"`
+	Name      string  `json:"name"`
+	Value     float64 `json:"value"`
+	Avatar    string  `json:"avatar"`
+	EnemyTeam bool    `json:"team2"`
+	Party     int     `json:"party"`
 }
+
+type gameValue struct {
+	ID    string  `json:"steamId"`
+	Value float64 `json:"value"`
+}
+
+
+
+// wok, steam api
+type butchWokRequest struct {
+	SteamIds []string `json:"steamids"`
+	Games    []string `json:"games"`
+}
+
+type wokResponse struct {
+	Results []struct {
+		ID         string `json:"steamid"`
+		Game       string `json:"game"`
+		TotalValue float64 `json:"total"`
+	} `json:"results"`
+}
+
+type steamResponce struct {
+	Resp struct {
+		Players []PlayerInfo `json:"players"`
+	} `json:"response"`
+}
+
+type PlayerInfo struct {
+	ID     string `json:"steamid"`
+	Name   string `json:"personaname"`
+	Avatar string `json:"avatar"`
+}
+
+
 
 // TRANSLATE
 type TRrequest struct {

@@ -7,5 +7,22 @@ content-type: application/json
     "hwidStable": "fdgdfgfds65fgdsf6dg5s5dfgs67856dg78fsSTABLE",
     "targetLang": "zh",
     "game": 1,
-    "items": [{"text": "看不懂", "sourceLang": "zh"}, {"text": "老玩家 别怕", "sourceLang": "zh"}, {"text": "看不懂", "sourceLang": "zh"}]
+    "items": [{"text": "看不懂", "sourceLang": "zh"}, {"text": "老玩家 别怕", "sourceLang": "zh"}]
+}
+
+###
+
+POST http://localhost:6767/api/inventory HTTP/1.1
+content-type: application/json
+
+{
+  "token": "...",
+  "hwid": "<sha256>",
+  "hwidStable": "<sha256>",
+  "matchId": 1234567890,
+  "steamId": "7656119...",
+  "game": 570,
+  "games": [570, 730, 252490, 440],
+  "markets": {"570":"Steam","730":"Steam","252490":"Steam","440":"Steam"},
+  "roster": [{"steamId":"7656119...","team2":false},{"steamId":"7656117...","team2":false}, {"steamId":"7656112...","team2":true}]
 }

@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
+	"os"
 
 	"github.com/joho/godotenv"
 )
@@ -12,10 +14,18 @@ import (
 func main() {
 	loadEnv()
 
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	slog.SetDefault(logger)
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/translate", returnTranslateHandler)
+	mux.HandleFunc("/api/inventory", returnInventoryValueHandler)
 	mux.HandleFunc("/", dumpHandler)
+
 
 	err := http.ListenAndServe(":3000", mux)
 	if err != nil {
@@ -39,7 +49,7 @@ func dumpHandler(w http.ResponseWriter, r *http.Request) {
 func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var requestData TRrequest
-	fmt.Println("Get request")
+	fmt.Println("Get translate")
 
 	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
@@ -48,7 +58,6 @@ func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Json error"))
 		return
 	}
-	fmt.Println(requestData.Items)
 
 	defer r.Body.Close()
 

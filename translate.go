@@ -51,7 +51,7 @@ func Translate(text []string, language string) ([]string, error) {
 		Messages: []Message{
 			{
 				Role:    "system",
-				Content: fmt.Sprintf(`Translate each Dota 2 in-game player chat message to %s naturally, preserving gaming slang and abbreviations. Return JSON: {"translations":["..."]}. Preserve order..`, language),
+				Content: fmt.Sprintf(`Translate each Dota 2 in-game player chat message to %s naturally, preserving gaming slang and abbreviations. Return minified JSON: {"translations":["..."]}. Preserve order..`, language),
 			},
 			{
 				Role:    "user",
@@ -59,6 +59,7 @@ func Translate(text []string, language string) ([]string, error) {
 			},
 		},
 	}
+
 	reqBody.Thinking.Type = "disabled"
 	reqBody.ResponseFormat.Type = "json_object"
 
