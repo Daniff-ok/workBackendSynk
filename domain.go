@@ -19,7 +19,7 @@ type requestPlayer struct {
 type ReturnInventoryValue struct {
 	Ready     bool                 `json:"ready"`
 	Players   [9]returnPlayer      `json:"players"`
-	GameValue map[string]gameValue `json:"byGame"`
+	GameValue map[string][]gameValue `json:"byGame"`
 }
 
 type returnPlayer struct {

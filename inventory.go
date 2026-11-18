@@ -36,7 +36,7 @@ func returnInventoryValueHandler(w http.ResponseWriter, r *http.Request) {
 	for _, player := range inventoryRequestData.Players{
 		request.SteamIds = append(request.SteamIds, player.ID)
 	}
-	request.Games = []string{"dota2", "cs2"} // add rust
+	request.Games = []string{"dota2", "cs2", "rust"}
 
 	wokResp, err := requestInventory(request, client)
 	if err != nil {
@@ -150,13 +150,13 @@ func maptoAppResponce(wokResp wokResponse, steamResp steamResponce, reqData Inve
 		}
 	}
 
-	returnInventoryValue.GameValue = make(map[string]gameValue)
+	returnInventoryValue.GameValue = make(map[string][]gameValue)
 	for i, player := range returnInventoryValue.Players {
 		for _, pairPlayerGame := range wokResp.Results {
 			if player.ID == pairPlayerGame.ID {
 				returnInventoryValue.Players[i].Value += pairPlayerGame.TotalValue
 
-				returnInventoryValue.GameValue[pairPlayerGame.Game] = gameValue{pairPlayerGame.ID, pairPlayerGame.TotalValue}
+				returnInventoryValue.GameValue[pairPlayerGame.Game] = append(returnInventoryValue.GameValue[pairPlayerGame.Game], gameValue{pairPlayerGame.ID, pairPlayerGame.TotalValue})
 			}
 		}
 	}
