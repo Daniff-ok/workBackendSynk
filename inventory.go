@@ -14,7 +14,11 @@ import (
 var wokApiUrl = "https://woksteamapi.com/v1/inventories"
 var steamApiUrl = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002"
 
+var testLimit = 0
+
 func returnInventoryValueHandler(w http.ResponseWriter, r *http.Request) {
+	if testLimit != 0{slog.Warn("more than 1 request"); http.Error(w,"more that 1 request", http.StatusTooManyRequests); return}
+	testLimit++
 
 	var inventoryRequestData InventoryRequest
 	slog.Debug("Get request")
@@ -29,7 +33,7 @@ func returnInventoryValueHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 2 * time.Minute,
 	}
 
 	request := butchWokRequest{}
