@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -37,51 +39,44 @@ var client = &http.Client{
 }
 
 func returnTranslateHandler(w http.ResponseWriter, r *http.Request) {
-	var requestData TRrequest
-
-	err := json.NewDecoder(r.Body).Decode(&requestData)
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "POST required", http.StatusMethodNotAllowed)
+		return
+	}
+	var request TRrequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 65_536)).Decode(&request); err != nil ||
+		len(request.Items) == 0 || len(request.Items) > 80 {
+		http.Error(w, "Expected 1 to 80 messages", http.StatusBadRequest)
+		return
+	}
+	language := strings.TrimSpace(request.TargetLang)
+	if language == "" {
+		language = "RU"
+	} else if len(language) > 16 || strings.ContainsFunc(language, func(ch rune) bool {
+		return (ch < 'A' || ch > 'Z') && (ch < 'a' || ch > 'z') && ch != '-'
+	}) {
+		http.Error(w, "Invalid target language", http.StatusBadRequest)
+		return
+	}
+	text := make([]string, len(request.Items))
+	for i, item := range request.Items {
+		text[i] = item.Text
+	}
+	translated, err := Translate(r.Context(), text, language)
 	if err != nil {
-		http.Error(w, "Json decode error", http.StatusBadRequest)
+		http.Error(w, "Translation provider unavailable", http.StatusBadGateway)
 		return
 	}
-
-	defer r.Body.Close()
-
-	text := []string{}
-	for _, val := range requestData.Items {
-		text = append(text, val.Text)
+	response := TranslateReturn{Results: make([]TranslateText, len(translated))}
+	for i, value := range translated {
+		response.Results[i] = TranslateText{value, request.Items[i].SourceLanguage}
 	}
-
-	if len(text) >= 10 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("гембит не роби"))
-		return
-	}
-
-	trReturn := TranslateReturn{}
-	translate, err := Translate(text, "ru")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("deepseek error"))
-		return
-	}
-
-	for _, val := range translate {
-		trReturn.Results = append(trReturn.Results, TranslateText{val, "zh"})
-	}
-
-	fmt.Println(trReturn.Results)
-
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-
-	err = json.NewEncoder(w).Encode(trReturn)
-	if err != nil {
-		fmt.Println(err)
-	}
+	_ = json.NewEncoder(w).Encode(response)
 }
 
-func Translate(text []string, language string) ([]string, error) {
+func Translate(ctx context.Context, text []string, language string) ([]string, error) {
 	if len(text) == 0 {
 		return []string{}, nil
 	}
@@ -113,8 +108,9 @@ func Translate(text []string, language string) ([]string, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(
-		"POST",
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
 		"https://api.deepseek.com/chat/completions",
 		bytes.NewReader(data),
 	)

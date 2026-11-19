@@ -1,7 +1,5 @@
 package main
 
-
-
 // INVENTORY VALUE
 type InventoryRequest struct {
 	Token      string          `json:"token"`
@@ -17,26 +15,24 @@ type requestPlayer struct {
 }
 
 type ReturnInventoryValue struct {
-	Ready     bool                 `json:"ready"`
-	Players   [9]returnPlayer      `json:"players"`
-	GameValue map[string][]gameValue `json:"byGame"`
+	Ready     bool                `json:"ready"`
+	Players   []returnPlayer      `json:"players"`
+	GameValue map[int][]gameValue `json:"byGame"`
 }
 
 type returnPlayer struct {
-	ID        string  `json:"steamid"`
-	Name      string  `json:"name"`
-	Value     float64 `json:"value"`
-	Avatar    string  `json:"avatar"`
-	EnemyTeam bool    `json:"team2"`
-	Party     int     `json:"party"`
+	ID        string   `json:"steamId"`
+	Name      string   `json:"name"`
+	Value     *float64 `json:"value"`
+	Avatar    string   `json:"avatar"`
+	EnemyTeam bool     `json:"team2"`
+	Party     int      `json:"party"`
 }
 
 type gameValue struct {
 	ID    string  `json:"steamId"`
 	Value float64 `json:"value"`
 }
-
-
 
 // wok, steam api
 type butchWokRequest struct {
@@ -46,8 +42,8 @@ type butchWokRequest struct {
 
 type wokResponse struct {
 	Results []struct {
-		ID         string `json:"steamid"`
-		Game       string `json:"game"`
+		ID         string  `json:"steamid"`
+		Game       string  `json:"game"`
 		TotalValue float64 `json:"total"`
 	} `json:"results"`
 }
@@ -63,8 +59,6 @@ type PlayerInfo struct {
 	Name   string `json:"personaname"`
 	Avatar string `json:"avatar"`
 }
-
-
 
 // TRANSLATE
 type TRrequest struct {
@@ -83,7 +77,7 @@ type Items struct {
 
 type TranslateText struct {
 	Text   string `json:"text"`
-	Source string `json:"scr"`
+	Source string `json:"src"`
 }
 
 type TranslateReturn struct {

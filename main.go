@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
-	"net/http/httputil"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -23,26 +21,11 @@ func main() {
 
 	mux.HandleFunc("/api/translate", returnTranslateHandler)
 	mux.HandleFunc("/api/inventory", returnInventoryValueHandler)
-	mux.HandleFunc("/", dumpHandler)
-
 
 	err := http.ListenAndServe(":3000", mux)
 	if err != nil {
 		slog.Error("Server starting", "error: ", err)
 	}
-}
-
-func dumpHandler(w http.ResponseWriter, r *http.Request) {
-
-	dump, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Printf("%s\n", dump)
-
-	w.Write([]byte(""))
 }
 
 func loadEnv() {
