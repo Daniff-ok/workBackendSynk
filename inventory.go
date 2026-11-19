@@ -2,83 +2,77 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
+	"strconv"
 	"strings"
+	"time"
 )
 
 var wokApiUrl = "https://woksteamapi.com/v1/inventories"
 var steamApiUrl = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002"
 
-var testLimit = 0
+var inventoryHTTP = &http.Client{Timeout: 2 * time.Minute}
+
+var inventoryGames = map[string]int{"dota2": 570, "cs2": 730, "rust": 252490}
 
 func returnInventoryValueHandler(w http.ResponseWriter, r *http.Request) {
-	if testLimit != 0{slog.Warn("more than 1 request"); http.Error(w,"more that 1 request", http.StatusTooManyRequests); return}
-	testLimit++
-
-	var inventoryRequestData InventoryRequest
-	slog.Debug("Get request")
-
-	err := json.NewDecoder(r.Body).Decode(&inventoryRequestData)
-	if err != nil {
-		slog.Error("Json decode error", "err", err, "status", http.StatusBadRequest)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Json decode request error"))
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "POST required", http.StatusMethodNotAllowed)
+		return
+	}
+	var inventory InventoryRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 32_768)).Decode(&inventory); err != nil ||
+		len(inventory.Players) == 0 || len(inventory.Players) > 10 {
+		http.Error(w, "Expected a roster of 1 to 10 players", http.StatusBadRequest)
 		return
 	}
 
-	defer r.Body.Close()
-	client := &http.Client{
-		Timeout: 2 * time.Minute,
-	}
-
-	request := butchWokRequest{}
-	for _, player := range inventoryRequestData.Players{
+	request := butchWokRequest{Games: []string{"dota2", "cs2", "rust"}}
+	seen := make(map[string]bool, len(inventory.Players))
+	for _, player := range inventory.Players {
+		const individualBase = 76561197960265728
+		id, err := strconv.ParseUint(player.ID, 10, 64)
+		if err != nil || id <= individualBase || id > individualBase+0xffffffff || seen[player.ID] ||
+			strconv.FormatUint(id, 10) != player.ID {
+			http.Error(w, "Invalid or duplicate Steam ID", http.StatusBadRequest)
+			return
+		}
+		seen[player.ID] = true
 		request.SteamIds = append(request.SteamIds, player.ID)
 	}
-	request.Games = []string{"dota2", "cs2", "rust"}
 
-	wokResp, err := requestInventory(request, client)
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+	values, err := requestInventory(ctx, request, inventoryHTTP)
 	if err != nil {
-		slog.Error("Request Inventory error", "err", err)
-		http.Error(w, "Request Inventory from api error", http.StatusBadGateway)
+		slog.Warn("Inventory provider request failed", "error", err)
+		http.Error(w, "Inventory provider unavailable", http.StatusBadGateway)
 		return
 	}
 
-	steamRest, err := requestAddInfo(request.SteamIds, client)
+	profiles, err := requestAddInfo(ctx, request.SteamIds, inventoryHTTP)
 	if err != nil {
-		slog.Error("Request Inventory error", "err", err)
-		http.Error(w, "Request steam addititon information from api error", http.StatusBadGateway)
-		return
+		slog.Warn("Steam profile enrichment failed")
 	}
-	
-	mappedData := maptoAppResponce(wokResp, steamRest, inventoryRequestData)
-
-
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-
-	err = json.NewEncoder(w).Encode(mappedData)
-	if err != nil {
-		slog.Error("Json Encode error", "err", err)
-		http.Error(w, "Json Encode error", http.StatusInternalServerError)
-		return
+	if err := json.NewEncoder(w).Encode(mapInventory(values, profiles, inventory)); err != nil {
+		slog.Warn("Inventory response failed", "error", err)
 	}
-
-	slog.Debug("Succefull sent responce")
 }
 
-func requestInventory(requestBody butchWokRequest, cl *http.Client) (wokResponse, error) {
+func requestInventory(ctx context.Context, requestBody butchWokRequest, cl *http.Client) (wokResponse, error) {
 	data, err := json.Marshal(requestBody)
 	if err != nil {
 		return wokResponse{}, fmt.Errorf("Json marshal error: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, wokApiUrl, bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, wokApiUrl, bytes.NewReader(data))
 	if err != nil {
 		return wokResponse{}, fmt.Errorf("Create new request error: %w", err)
 	}
@@ -94,21 +88,21 @@ func requestInventory(requestBody butchWokRequest, cl *http.Client) (wokResponse
 	}
 	defer resp.Body.Close()
 
-	if resp.Status != "200 OK"{
+	if resp.Status != "200 OK" {
 		return wokResponse{}, fmt.Errorf("Return error from inventory api, status %v, request body: %v", resp.Status, requestBody)
 	}
 
 	var dataResp wokResponse
 	err = json.NewDecoder(resp.Body).Decode(&dataResp)
-	if err != nil{
+	if err != nil {
 		return wokResponse{}, fmt.Errorf("Json decode error: %w", err)
 	}
 
 	return dataResp, nil
 }
 
-func requestAddInfo(steamids []string, cl *http.Client) (steamResponce, error){
-	req, err := http.NewRequest(http.MethodGet, steamApiUrl, nil)
+func requestAddInfo(ctx context.Context, steamids []string, cl *http.Client) (steamResponce, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, steamApiUrl, nil)
 	if err != nil {
 		return steamResponce{}, fmt.Errorf("Create new request error: %w", err)
 	}
@@ -126,75 +120,55 @@ func requestAddInfo(steamids []string, cl *http.Client) (steamResponce, error){
 	slog.Debug("Do steam official api add info request")
 	defer resp.Body.Close()
 
-	if resp.Status != "200 OK"{
-		return steamResponce{}, fmt.Errorf("Return error from steam official api, status %v, ulr: %v", resp.Status, req.URL)
+	if resp.Status != "200 OK" {
+		return steamResponce{}, fmt.Errorf("Steam profiles returned %s", resp.Status)
 	}
 
 	var dataResp steamResponce
 	err = json.NewDecoder(resp.Body).Decode(&dataResp)
 
-	return dataResp, nil
+	return dataResp, err
 }
 
-func maptoAppResponce(wokResp wokResponse, steamResp steamResponce, reqData InventoryRequest) ReturnInventoryValue {
-	var returnInventoryValue ReturnInventoryValue
-	returnInventoryValue.Ready = true
-
-	for i, player := range reqData.Players {
-		for _, infoPlayer:= range steamResp.Resp.Players {
-			if player.ID == infoPlayer.ID {
-				returnInventoryValue.Players[i] = returnPlayer{
-					ID: player.ID,
-					Name: infoPlayer.Name,
-					Avatar: infoPlayer.Avatar,
-					EnemyTeam: player.EnemyTeam,
-					Party: 0,
-				}
+func mapInventory(values wokResponse, profiles steamResponce, roster InventoryRequest) ReturnInventoryValue {
+	response := ReturnInventoryValue{
+		Ready:     true,
+		Players:   make([]returnPlayer, len(roster.Players)),
+		GameValue: make(map[int][]gameValue),
+	}
+	profileByID := make(map[string]PlayerInfo, len(profiles.Resp.Players))
+	for _, profile := range profiles.Resp.Players {
+		profileByID[profile.ID] = profile
+	}
+	playerIndex := make(map[string]int, len(roster.Players))
+	for i, player := range roster.Players {
+		profile := profileByID[player.ID]
+		response.Players[i] = returnPlayer{
+			ID: player.ID, Name: profile.Name, Avatar: profile.Avatar, EnemyTeam: player.EnemyTeam,
+		}
+		playerIndex[player.ID] = i
+	}
+	valuations := make(map[int]map[string]float64)
+	for _, result := range values.Results {
+		appID, gameKnown := inventoryGames[result.Game]
+		_, playerKnown := playerIndex[result.ID]
+		if !gameKnown || !playerKnown {
+			continue
+		}
+		if valuations[appID] == nil {
+			valuations[appID] = make(map[string]float64)
+		}
+		valuations[appID][result.ID] = result.TotalValue
+	}
+	for appID, gameValues := range valuations {
+		for id, value := range gameValues {
+			response.GameValue[appID] = append(response.GameValue[appID], gameValue{ID: id, Value: value})
+			player := &response.Players[playerIndex[id]]
+			if player.Value == nil {
+				player.Value = new(float64)
 			}
+			*player.Value += value
 		}
 	}
-
-	returnInventoryValue.GameValue = make(map[string][]gameValue)
-	for i, player := range returnInventoryValue.Players {
-		for _, pairPlayerGame := range wokResp.Results {
-			if player.ID == pairPlayerGame.ID {
-				returnInventoryValue.Players[i].Value += pairPlayerGame.TotalValue
-
-				returnInventoryValue.GameValue[pairPlayerGame.Game] = append(returnInventoryValue.GameValue[pairPlayerGame.Game], gameValue{pairPlayerGame.ID, pairPlayerGame.TotalValue})
-			}
-		}
-	}
-
-	return returnInventoryValue
-}
-
-func wokApiPlaceholder(_ butchWokRequest, _ *http.Client) (wokResponse, error) {
-	return wokResponse{
-		Results: []struct{
-			ID         string `json:"steamid"`
-			Game       string `json:"game"`
-			TotalValue float64 `json:"total"`
-		}{
-			{
-				ID: "76561198147927273",
-				Game: "dota2",
-				TotalValue: 595.31,
-			},
-			{
-				ID: "76561198147927273",
-				Game: "cs2",
-				TotalValue: 105,
-			},
-						{
-				ID: "76561198063639479",
-				Game: "dota2",
-				TotalValue: 780.99,
-			},
-						{
-				ID: "76561198063639479",
-				Game: "cs2",
-				TotalValue: 5.5,
-			},
-		},
-	}, nil
+	return response
 }
