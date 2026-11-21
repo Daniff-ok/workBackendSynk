@@ -16,7 +16,7 @@ import (
 var wokApiUrl = "https://woksteamapi.com/v1/inventories"
 var steamApiUrl = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002"
 
-var inventoryHTTP = &http.Client{Timeout: 3 * time.Minute}
+var inventoryHTTP = &http.Client{Timeout: 2 * time.Minute}
 
 var inventoryGames = map[string]int{"dota2": 570, "cs2": 730, "rust": 252490}
 
@@ -47,7 +47,7 @@ func returnInventoryValueHandler(w http.ResponseWriter, r *http.Request) {
 		request.SteamIds = append(request.SteamIds, player.ID)
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
 	defer cancel()
 	values, err := requestInventory(ctx, request, inventoryHTTP)
 	if err != nil {
