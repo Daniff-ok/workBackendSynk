@@ -16,7 +16,7 @@ import (
 var wokApiUrl = "https://woksteamapi.com/v1/inventories"
 var steamApiUrl = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002"
 
-var inventoryHTTP = &http.Client{Timeout: 25 * time.Second}
+var inventoryHTTP = &http.Client{Timeout: 3 * time.Minute}
 
 var inventoryGames = map[string]int{"dota2": 570, "cs2": 730, "rust": 252490}
 
