@@ -57,8 +57,8 @@ func (r *LoginRepo) UpdateUser(user domain.User, ctx context.Context) error {
 	return nil
 }
 
-func (r *LoginRepo) UpdateRefreshToken(userid string, tokenHash string, ctx context.Context) error {
-	_, err := gorm.G[domain.User](r.db).Where("ID = ?", userid).Update(ctx, "Local_refresh_token", tokenHash)
+func (r *LoginRepo) UpdateUserAttribute(userid string, attribute string, value any, ctx context.Context) error {
+	_, err := gorm.G[domain.User](r.db).Where("ID = ?", userid).Update(ctx, attribute, value)
 
 	if err != nil {
 		return fmt.Errorf("Update refresh token error: %w", err)

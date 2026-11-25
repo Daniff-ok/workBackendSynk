@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/base64"
 
 	"rndmBackend/internal/domain"
 	"rndmBackend/internal/gateway"
@@ -30,14 +30,14 @@ type LoginService struct {
 
 func NewLoginService(gate *gateway.Logingateway, repo *repo.LoginRepo) *LoginService {
 	return &LoginService{
-		gate: gate,
-		repo: repo,
+		gate:      gate,
+		repo:      repo,
 		jwtSecret: []byte(os.Getenv("JWT_SECRET")),
 	}
 }
 
 func (s *LoginService) Login(code string, ctx context.Context) (domain.AccountResponce, error) {
-	tokens, err := s.gate.GetAccessToken(code)
+	tokens, err := s.gate.GetTokens(code)
 	if err != nil {
 		return domain.AccountResponce{}, err
 	}
@@ -48,6 +48,7 @@ func (s *LoginService) Login(code string, ctx context.Context) (domain.AccountRe
 	}
 
 	user.Acces_token = tokens.AccessToken
+	user.Access_updated_at = time.Now()
 	user.Expires_in = tokens.Expires
 	user.Refresh_token = tokens.RefreshToken
 
@@ -81,29 +82,37 @@ func (s *LoginService) Login(code string, ctx context.Context) (domain.AccountRe
 	}
 	sum := sha256.Sum256([]byte(refreshToken))
 	tokenHash := hex.EncodeToString(sum[:])
-	err = s.repo.UpdateRefreshToken(user.ID, tokenHash, ctx)
+	err = s.repo.UpdateUserAttribute(user.ID, "Local_refresh_token", tokenHash, ctx)
 	if err != nil {
 		return domain.AccountResponce{}, err
 	}
 
 	accountResponce := domain.AccountResponce{
-		ID: user.ID,
-		Name: user.Name,
-		Avatar: user.Avatar,
-		Access: user.Access,
-		AccessToken: accessToken,
+		ID:           user.ID,
+		Name:         user.Name,
+		Avatar:       user.Avatar,
+		Access:       user.Access,
+		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}
 
 	return accountResponce, nil
 }
 
-func (s *LoginService) Refresh(token string, ctx context.Context) (domain.AccountResponce, error){
+func (s *LoginService) Refresh(token string, ctx context.Context) (domain.AccountResponce, error) {
 	sum := sha256.Sum256([]byte(token))
 	tokenHash := hex.EncodeToString(sum[:])
 	userDB, err := s.repo.GetUserByRefresh(tokenHash, ctx)
 	if err != nil {
 		return domain.AccountResponce{}, err
+	}
+
+	if time.Since(userDB.Access_updated_at) > time.Duration(userDB.Expires_in)*time.Second {
+		newtoken, err := s.gate.RefreshAccessToken(userDB.Refresh_token)
+		if err != nil {
+			return domain.AccountResponce{}, err
+		}
+		err = s.repo.UpdateUser(domain.User{ID: userDB.ID, Acces_token: newtoken, Access_updated_at: time.Now()}, ctx)
 	}
 
 	UserApi, err := s.gate.GetAccountInfo(userDB.Acces_token)
@@ -122,10 +131,10 @@ func (s *LoginService) Refresh(token string, ctx context.Context) (domain.Accoun
 	}
 
 	accountResponce := domain.AccountResponce{
-		ID: userDB.ID,
-		Name: UserApi.Name,
-		Avatar: UserApi.Avatar,
-		Access: userDB.Access,
+		ID:          userDB.ID,
+		Name:        UserApi.Name,
+		Avatar:      UserApi.Avatar,
+		Access:      userDB.Access,
 		AccessToken: accessToken,
 	}
 
