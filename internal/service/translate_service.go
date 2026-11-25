@@ -1,15 +1,15 @@
 package service
 
 import (
-	"rndmBackend/internal/repository"
+	"rndmBackend/internal/gateway"
 	//"rndmBackend/internal/domain"
 )
 
 type TranslateService struct{
-	repo *repository.TranslateRepo
+	repo *gateway.TranslateGateway
 }
 
-func NewTranslateService(repo *repository.TranslateRepo) *TranslateService {
+func NewTranslateService(repo *gateway.TranslateGateway) *TranslateService {
 	return &TranslateService{repo}
 }
 

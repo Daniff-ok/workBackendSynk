@@ -26,3 +26,10 @@ content-type: application/json
   "markets": {"570":"Steam","730":"Steam","252490":"Steam","440":"Steam"},
   "roster": [{"steamId":"76561198147927273","team2":false},{"steamId":"76561198063639479","team2":true}]
 }
+
+###
+
+GET http://localhost:3001/api/login HTTP/1.1
+content-type: application/json
+
+"awcIddo08bhz07t7eLnIgnGWpDBEFI"

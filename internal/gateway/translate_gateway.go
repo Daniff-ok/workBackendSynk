@@ -1,4 +1,4 @@
-package repository
+package gateway
 
 import (
 	"net/http"
@@ -13,14 +13,14 @@ import (
 )
 
 
-type TranslateRepo struct {
+type TranslateGateway struct {
 	url   string
 	token string
 	client http.Client
 }
 
-func NewTranslateRepo() *TranslateRepo {
-	return &TranslateRepo{
+func NewTranslateGateway() *TranslateGateway {
+	return &TranslateGateway{
 		url: "https://api.deepseek.com/chat/completions",
 		token:os.Getenv("DEEPSEEK_API"),
 		client: http.Client{
@@ -29,7 +29,7 @@ func NewTranslateRepo() *TranslateRepo {
 	}
 }
 
-func (r *TranslateRepo) RequestTranslate(text []string, language string) (domain.Response, error) {
+func (r *TranslateGateway) RequestTranslate(text []string, language string) (domain.Response, error) {
 	input, err := json.Marshal(text)
 	if err != nil {
 		return domain.Response{}, err
