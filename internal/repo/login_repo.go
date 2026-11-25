@@ -19,7 +19,7 @@ func NewLoginRepo(db *gorm.DB) *LoginRepo {
 }
 
 func (r *LoginRepo) GetUserById(id string, ctx context.Context) (domain.User, error) {
-	user, err := gorm.G[domain.User](r.db).Where("ID = ?", id).First(ctx)
+	user, err := gorm.G[domain.User](r.db).Where("id = ?", id).First(ctx)
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -44,12 +44,7 @@ func (r *LoginRepo) CreateUser(user domain.User, ctx context.Context) error {
 }
 
 func (r *LoginRepo) UpdateUser(user domain.User, ctx context.Context) error {
-	_, err := gorm.G[domain.User](r.db).Where("ID = ?", user.ID).Updates(ctx, domain.User{
-		Name:          user.Name,
-		Avatar:        user.Avatar,
-		Acces_token:   user.Acces_token,
-		Refresh_token: user.Refresh_token,
-	})
+	_, err := gorm.G[domain.User](r.db).Where("id = ?", user.ID).Updates(ctx, user)
 
 	if err != nil {
 		return fmt.Errorf("Update row error: %w", err)
@@ -58,7 +53,7 @@ func (r *LoginRepo) UpdateUser(user domain.User, ctx context.Context) error {
 }
 
 func (r *LoginRepo) UpdateUserAttribute(userid string, attribute string, value any, ctx context.Context) error {
-	_, err := gorm.G[domain.User](r.db).Where("ID = ?", userid).Update(ctx, attribute, value)
+	_, err := gorm.G[domain.User](r.db).Where("id = ?", userid).Update(ctx, attribute, value)
 
 	if err != nil {
 		return fmt.Errorf("Update refresh token error: %w", err)

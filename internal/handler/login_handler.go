@@ -53,7 +53,7 @@ func (h *LoginHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	r.Context()
 	responceStruct, err := h.service.Refresh(token, r.Context())
 	if err != nil {
-		slog.Error("Login error", "err", err)
+		slog.Error("Refresh error", "err", err)
 		http.Error(w, "Login error", http.StatusInternalServerError)
 	}
 

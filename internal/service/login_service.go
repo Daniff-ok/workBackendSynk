@@ -108,11 +108,11 @@ func (s *LoginService) Refresh(token string, ctx context.Context) (domain.Accoun
 	}
 
 	if time.Since(userDB.Access_updated_at) > time.Duration(userDB.Expires_in)*time.Second {
-		newtoken, err := s.gate.RefreshAccessToken(userDB.Refresh_token)
+		tokens, err := s.gate.RefreshAccessToken(userDB.Refresh_token)
 		if err != nil {
 			return domain.AccountResponce{}, err
 		}
-		err = s.repo.UpdateUser(domain.User{ID: userDB.ID, Acces_token: newtoken, Access_updated_at: time.Now()}, ctx)
+		err = s.repo.UpdateUser(domain.User{ID: userDB.ID, Acces_token: tokens.AccessToken, Access_updated_at: time.Now(), Expires_in: tokens.Expires, Refresh_token: tokens.RefreshToken}, ctx)
 	}
 
 	UserApi, err := s.gate.GetAccountInfo(userDB.Acces_token)

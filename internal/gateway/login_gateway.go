@@ -68,7 +68,7 @@ func (r *Logingateway) GetTokens(code string) (domain.TokenResponce, error) {
 	return tokens, nil
 }
 
-func (r *Logingateway) RefreshAccessToken(refreshToken string) (string, error) {
+func (r *Logingateway) RefreshAccessToken(refreshToken string) (domain.TokenResponce, error) {
 	form := url.Values{}
 	form.Set("grant_type", "refresh_token")
 	form.Set("refresh_token", refreshToken)
@@ -76,7 +76,7 @@ func (r *Logingateway) RefreshAccessToken(refreshToken string) (string, error) {
 	reqURL := fmt.Sprintf("%s/oauth2/token", r.apiEndpoint)
 	req, err := http.NewRequest("POST", reqURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return "", err
+		return domain.TokenResponce{}, err
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -84,22 +84,22 @@ func (r *Logingateway) RefreshAccessToken(refreshToken string) (string, error) {
 
 	resp, err := r.client.Do(req)
 	if err != nil {
-		return "", err
+		return domain.TokenResponce{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return "", fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+		return domain.TokenResponce{}, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
 	}
 
-	token := ""
-	err = json.NewDecoder(resp.Body).Decode(&token)
+	tokens := domain.TokenResponce{}
+	err = json.NewDecoder(resp.Body).Decode(&tokens)
 	if err != nil {
-		return "", fmt.Errorf("Json decode error: %w", err)
+		return domain.TokenResponce{}, fmt.Errorf("Json decode error: %w", err)
 	}
 
-	return token, nil
+	return domain.TokenResponce{}, nil
 }
 func (r *Logingateway) GetAccountInfo(token string) (domain.User, error) {
 	reqURL := fmt.Sprintf("%s/users/@me", r.apiEndpoint)
