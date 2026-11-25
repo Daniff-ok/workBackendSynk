@@ -29,7 +29,14 @@ content-type: application/json
 
 ###
 
-GET http://localhost:3001/api/login HTTP/1.1
+GET http://localhost:8080/api/login HTTP/1.1
 content-type: application/json
 
-"awcIddo08bhz07t7eLnIgnGWpDBEFI"
+"ZVRgbsD4Zgu9ny7r0Crf5sLF58aNJM"
+
+###
+
+GET http://localhost:8080/api/refresh HTTP/1.1
+content-type: application/json
+
+"dPQlPUp_yx88La-Dbf4_EkZu1XnqdaU-EfAfsDUxfzg"

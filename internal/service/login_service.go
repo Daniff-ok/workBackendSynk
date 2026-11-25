@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/base64"
 
 	"rndmBackend/internal/domain"
@@ -17,7 +19,7 @@ import (
 )
 
 var (
-	accessTTL = 2 * time.Hour
+	accessTTL = 5 * time.Hour
 )
 
 type LoginService struct {
@@ -53,7 +55,7 @@ func (s *LoginService) Login(code string, ctx context.Context) (domain.AccountRe
 	user.Access = true
 	// DELETE
 
-	_, err = s.repo.GetAccById(user.ID, ctx)
+	_, err = s.repo.GetUserById(user.ID, ctx)
 	if err == gorm.ErrRecordNotFound {
 		err = s.repo.CreateUser(user, ctx)
 		if err != nil {
@@ -77,6 +79,12 @@ func (s *LoginService) Login(code string, ctx context.Context) (domain.AccountRe
 	if err != nil {
 		return domain.AccountResponce{}, fmt.Errorf("Generate refresh token error: %w", err)
 	}
+	sum := sha256.Sum256([]byte(refreshToken))
+	tokenHash := hex.EncodeToString(sum[:])
+	err = s.repo.UpdateRefreshToken(user.ID, tokenHash, ctx)
+	if err != nil {
+		return domain.AccountResponce{}, err
+	}
 
 	accountResponce := domain.AccountResponce{
 		ID: user.ID,
@@ -85,6 +93,40 @@ func (s *LoginService) Login(code string, ctx context.Context) (domain.AccountRe
 		Access: user.Access,
 		AccessToken: accessToken,
 		RefreshToken: refreshToken,
+	}
+
+	return accountResponce, nil
+}
+
+func (s *LoginService) Refresh(token string, ctx context.Context) (domain.AccountResponce, error){
+	sum := sha256.Sum256([]byte(token))
+	tokenHash := hex.EncodeToString(sum[:])
+	userDB, err := s.repo.GetUserByRefresh(tokenHash, ctx)
+	if err != nil {
+		return domain.AccountResponce{}, err
+	}
+
+	UserApi, err := s.gate.GetAccountInfo(userDB.Acces_token)
+	if err != nil {
+		return domain.AccountResponce{}, err
+	}
+
+	err = s.repo.UpdateUser(UserApi, ctx)
+	if err != nil {
+		return domain.AccountResponce{}, err
+	}
+
+	accessToken, err := generateAccessToken(userDB.ID, userDB.Access, s.jwtSecret)
+	if err != nil {
+		return domain.AccountResponce{}, fmt.Errorf("Generate jwt error: %w", err)
+	}
+
+	accountResponce := domain.AccountResponce{
+		ID: userDB.ID,
+		Name: UserApi.Name,
+		Avatar: UserApi.Avatar,
+		Access: userDB.Access,
+		AccessToken: accessToken,
 	}
 
 	return accountResponce, nil
@@ -112,5 +154,4 @@ func generateRefreshToken() (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
-
 }

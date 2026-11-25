@@ -18,13 +18,22 @@ func NewLoginRepo(db *gorm.DB) *LoginRepo {
 	}
 }
 
-func (r *LoginRepo) GetAccById(id string, ctx context.Context) (domain.User, error) {
+func (r *LoginRepo) GetUserById(id string, ctx context.Context) (domain.User, error) {
 	user, err := gorm.G[domain.User](r.db).Where("ID = ?", id).First(ctx)
 	if err != nil {
 		return domain.User{}, err
 	}
 	return user, nil
 }
+
+func (r *LoginRepo) GetUserByRefresh(tokenHash string, ctx context.Context) (domain.User, error) {
+	user, err := gorm.G[domain.User](r.db).Where("Local_refresh_token = ?", tokenHash).First(ctx)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return user, nil
+}
+
 
 func (r *LoginRepo) CreateUser(user domain.User, ctx context.Context) error {
 	err := gorm.G[domain.User](r.db).Create(ctx, &user)
@@ -48,8 +57,8 @@ func (r *LoginRepo) UpdateUser(user domain.User, ctx context.Context) error {
 	return nil
 }
 
-func (r *LoginRepo) UpdateRefreshToken(userid string, token string, ctx context.Context) error {
-	_, err := gorm.G[domain.User](r.db).Where("ID = ?", userid).Update(ctx, "Local_refresh_token", token)
+func (r *LoginRepo) UpdateRefreshToken(userid string, tokenHash string, ctx context.Context) error {
+	_, err := gorm.G[domain.User](r.db).Where("ID = ?", userid).Update(ctx, "Local_refresh_token", tokenHash)
 
 	if err != nil {
 		return fmt.Errorf("Update refresh token error: %w", err)
